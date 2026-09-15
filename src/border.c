@@ -99,13 +99,15 @@ static void border_draw(struct border* border, CGRect frame, struct settings* se
       SLSWindowThaw(border->cid, border->wid);
       return;
     }
-    // A per-app rule wins over the colour this window would otherwise be
-    // handed, and may carry its own pattern.
+    // By Window uses the same collection with a stable design per target.
     uint32_t yarn = knit_color_for_app(border->app);
     int chart = knit_pattern_for_app(border->app);
-    const struct app_rule* rule = knit_app_rule(border->app);
+    const struct app_rule* rule = g_knit_pattern_by_window
+      ? knit_window_rule(border->app, border->target_wid)
+      : knit_app_rule(border->app);
     if (rule) {
       yarn = rule->color;
+      if (g_knit_pattern_by_window) chart = knit_chart_index(rule->chart);
     }
 
     knit_draw(border->context,

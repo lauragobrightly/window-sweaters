@@ -103,6 +103,7 @@ static void knit_save_prefs(void) {
                ? @(g_charts[g_chart_active].name) : @"none")
         forKey:@"chart"];
   [d setBool:g_knit_pattern_by_app forKey:@"patternByApp"];
+  [d setBool:g_knit_pattern_by_window forKey:@"patternByWindow"];
   [d setInteger:g_knit_anchor forKey:@"anchor"];
 }
 
@@ -135,7 +136,8 @@ static void knit_load_prefs(void) {
   if (!chart.length || knit_chart_index(chart.UTF8String) < 0) chart = @"none";
   snprintf(buf, sizeof buf, "chart=%s", chart.UTF8String);
   knit_apply(buf);
-  if ([d boolForKey:@"patternByApp"]) knit_apply("chart=by-app");
+  if ([d boolForKey:@"patternByWindow"]) knit_apply("chart=by-window");
+  else if ([d boolForKey:@"patternByApp"]) knit_apply("chart=by-app");
   if (knit_menu_colourwork() && g_knit.rows < knit_menu_minimum_rows()) {
     snprintf(buf, sizeof buf, "gauge=%g", knit_menu_minimum_rows());
     knit_apply(buf);
@@ -357,8 +359,11 @@ static void knit_load_prefs(void) {
 
   NSMenu* pattern = [self submenu:menu title:@"Pattern"];
   NSMenuItem* byApp = [self add:pattern title:@"By App" arg:@"chart=by-app"
-                           on:g_knit_pattern_by_app];
+                           on:(g_knit_pattern_by_app && !g_knit_pattern_by_window)];
   byApp.toolTip = @"Each app uses its own pattern and yarn colours.";
+  NSMenuItem* byWindow = [self add:pattern title:@"By Window" arg:@"chart=by-window"
+                              on:g_knit_pattern_by_window];
+  byWindow.toolTip = @"Each window keeps its own sweater from the collection until the app restarts.";
   [pattern addItem:[NSMenuItem separatorItem]];
   NSArray* plainNames = @[@"Stockinette", @"Rib"];
   const enum knit_stitch plainStitches[] = { KNIT_STOCKINETTE, KNIT_RIB };

@@ -40,12 +40,14 @@ struct settings g_settings = {.border_width = 10, .border_style = BORDER_STYLE_K
                               .border_order = BORDER_ORDER_BELOW};
 struct knit_gauge g_knit;
 bool g_knit_on = false;
+bool g_knit_pattern_by_window;
 float g_knit_dim;
 int g_chart_active;
 mach_port_t g_server_port;
 static int draws;
 uint32_t knit_color_for_app(const char* app) { return 0; }
 const struct app_rule* knit_app_rule(const char* app) { return NULL; }
+const struct app_rule* knit_window_rule(const char* app, uint32_t wid) { return NULL; }
 int knit_chart_index(const char* name) { return -1; }
 int knit_pattern_for_app(const char* name) { return -1; }
 void knit_draw(CGContextRef c, CGRect r, float radius, float width, uint32_t color,

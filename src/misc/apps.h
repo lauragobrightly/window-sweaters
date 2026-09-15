@@ -25,7 +25,8 @@ struct app_rule {
 
 extern struct app_rule g_app_rules[KNIT_APP_RULES_MAX];
 extern int g_app_rule_count;
-extern bool g_knit_pattern_by_app; // true = app profiles; false = global selection
+extern bool g_knit_pattern_by_app; // true = collection (app/window); false = global
+extern bool g_knit_pattern_by_window; // collection assigned per window
 
 /// Path to apps.conf, created and seeded with defaults on first run.
 const char* knit_apps_path(void);
@@ -37,11 +38,15 @@ int knit_apps_load(void);
 /// Longest-prefix user match, then built-in app match, or NULL.
 const struct app_rule* knit_app_rule(const char* app_name);
 
+/// Session-stable collection design for a window. Call on the main thread.
+/// New windows of the same app receive different charts until the pool cycles.
+const struct app_rule* knit_window_rule(const char* app_name, uint32_t wid);
+
 /// Resolve the effective chart (-1 = plain), independently of the app's yarn.
 /// By App uses the profile, falling back to plain; global mode overrides it.
 int knit_pattern_for_app(const char* app_name);
 
-/// Select "by-app", "none" (global plain), or a loaded chart (global pattern).
+/// Select "by-app", "by-window", "none", or a loaded chart (global pattern).
 /// Returns false for an unknown name without changing the current selection.
 bool knit_pattern_select(const char* name);
 

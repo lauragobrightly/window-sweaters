@@ -164,6 +164,38 @@ static void test_patterns(void) {
   assert(knit_pattern_for_app("Google Chrome") == chrome);
 }
 
+static void test_window_patterns(void) {
+  assert(knit_pattern_select("by-window"));
+  assert(g_knit_pattern_by_app && g_knit_pattern_by_window);
+  const struct app_rule* first[12];
+  for (uint32_t i = 0; i < 12; i++) {
+    first[i] = knit_window_rule("Terminal", 101 + i * 73);
+    assert(knit_chart_index(first[i]->chart) >= 0);
+    for (uint32_t j = 0; j < i; j++)
+      assert(strcmp(first[i]->chart, first[j]->chart));
+    // Discovering another app must not change Terminal's sequence.
+    assert(knit_window_rule("Another App", i)->color == first[i]->color);
+  }
+  // Reallocation, out-of-order redraws and mode changes keep prior assignments.
+  for (uint32_t i = 0; i < 300; i++)
+    assert(knit_window_rule("New App", 10000 + i));
+  assert(!knit_pattern_select("missing-chart"));
+  assert(g_knit_pattern_by_window);
+  assert(knit_pattern_select("by-app"));
+  assert(!g_knit_pattern_by_window);
+  assert(knit_pattern_for_app("Terminal") == knit_chart_index("atelier-terminal"));
+  assert(knit_pattern_select("zigzag"));
+  assert(!g_knit_pattern_by_window && !g_knit_pattern_by_app);
+  assert(knit_pattern_for_app("Terminal") == knit_chart_index("zigzag"));
+  assert(knit_pattern_select("by-window"));
+  assert(knit_charts_load(NULL) == COLLECTION_COUNT);
+  for (int i = 11; i >= 0; i--)
+    assert(knit_window_rule("terminal", 101 + i * 73) == first[i]);
+  assert(knit_pattern_select("none"));
+  assert(!g_knit_pattern_by_window && !g_knit_pattern_by_app);
+  assert(knit_pattern_select("by-app"));
+}
+
 static void test_preserved_charts(void) {
   const char* names[] = {"braid", "blockstripe", "checker", "seedling", "trim"};
   struct knit_chart saved[5];
@@ -283,6 +315,7 @@ int main(void) {
   make_directory(charts);
   test_apps(home);
   test_patterns();
+  test_window_patterns();
   test_preserved_charts();
   test_charts(charts);
   assert(rmdir(charts) == 0);

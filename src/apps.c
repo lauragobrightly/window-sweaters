@@ -10,6 +10,7 @@
 struct app_rule g_app_rules[KNIT_APP_RULES_MAX];
 int g_app_rule_count = 0;
 bool g_knit_pattern_by_app = true;
+bool g_knit_pattern_by_window = false;
 
 // The collection stays available even when apps.conf is absent or unreadable.
 // User rules are evaluated first, so personal colourways always take priority.
@@ -172,6 +173,45 @@ const struct app_rule* knit_app_rule(const char* app_name) {
   return best;
 }
 
+// Remember assignments for the session, including while borders are hidden or
+// recreated. Each app walks the collection independently; app aliases that
+// share a chart do not consume another design. No window titles are retained.
+const struct app_rule* knit_window_rule(const char* app_name, uint32_t wid) {
+  static struct assignment {
+    uint32_t wid;
+    char app[64];
+    size_t design;
+  } *assignments;
+  static size_t count, capacity;
+  static const struct app_rule* designs[sizeof k_collection / sizeof k_collection[0]];
+  static size_t design_count;
+  if (!design_count) {
+    for (size_t i = 0; i < sizeof k_collection / sizeof k_collection[0]; i++) {
+      size_t j = 0;
+      while (j < design_count && strcmp(designs[j]->chart, k_collection[i].chart)) j++;
+      if (j == design_count) designs[design_count++] = &k_collection[i];
+    }
+  }
+  const char* app = app_name ? app_name : "";
+  size_t next = 0;
+  for (size_t i = 0; i < count; i++) {
+    if (strcasecmp(assignments[i].app, app)) continue;
+    if (assignments[i].wid == wid) return designs[assignments[i].design];
+    next++;
+  }
+  if (count == capacity) {
+    size_t grown = capacity ? capacity * 2 : 64;
+    struct assignment* buffer = realloc(assignments, grown * sizeof *buffer);
+    if (!buffer) return designs[wid % design_count];
+    assignments = buffer;
+    capacity = grown;
+  }
+  assignments[count].wid = wid;
+  snprintf(assignments[count].app, sizeof assignments[count].app, "%s", app);
+  assignments[count++].design = next % design_count;
+  return designs[next % design_count];
+}
+
 int knit_pattern_for_app(const char* app_name) {
   if (!g_knit_pattern_by_app)
     return g_chart_active >= 0 && g_chart_active < g_chart_count ? g_chart_active : -1;
@@ -181,14 +221,16 @@ int knit_pattern_for_app(const char* app_name) {
 
 bool knit_pattern_select(const char* name) {
   if (!name) return false;
-  if (strcmp(name, "by-app") == 0) {
+  if (strcmp(name, "by-app") == 0 || strcmp(name, "by-window") == 0) {
     g_knit_pattern_by_app = true;
+    g_knit_pattern_by_window = strcmp(name, "by-window") == 0;
     return true;
   }
   int index = strcmp(name, "none") == 0 ? -1 : knit_chart_index(name);
   if (index < 0 && strcmp(name, "none") != 0) return false;
   g_chart_active = index;
   g_knit_pattern_by_app = false;
+  g_knit_pattern_by_window = false;
   return true;
 }
 

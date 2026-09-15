@@ -46,6 +46,32 @@ static void write_image(CGContextRef c, const char* path) {
   CFRelease(dest); CFRelease(url); CGImageRelease(img);
 }
 
+static void window_preview(const char* path) {
+  assert(knit_pattern_select("by-window"));
+  CGContextRef c = canvas(1180, 850, 2);
+  CGContextSetRGBFillColor(c, .97, .96, .94, 1);
+  CGContextFillRect(c, CGRectMake(0, 0, 1180, 850));
+  text_at(c, 40, 48, "By Window", 28);
+  const struct app_rule* saved[12];
+  for (int i = 0; i < 12; i++) {
+    saved[i] = knit_window_rule("Terminal", 100 + i * 37);
+    int chart = knit_chart_index(saved[i]->chart);
+    assert(chart >= 0);
+    for (int j = 0; j < i; j++) assert(strcmp(saved[j]->chart, saved[i]->chart));
+    float x = 50 + (i % 3) * 385, y = 110 + (i / 3) * 185;
+    CGRect win = CGRectMake(x, y, 310, 108);
+    knit_draw(c, win, 10, 12, saved[i]->color, chart, 0, 1);
+    CGContextSetRGBFillColor(c, .12, .13, .13, 1);
+    CGContextFillRect(c, CGRectInset(win, 1, 1));
+    char label[100];
+    snprintf(label, sizeof label, "Terminal %d", i + 1);
+    text_at(c, x, y - 24, label, 16);
+    text_at(c, x, y + 142, saved[i]->chart, 12);
+  }
+  write_image(c, path);
+  CGContextRelease(c);
+}
+
 static void preview(const char* path) {
   const char* apps[] = { "Finder", "Microsoft Teams", "Claude", "Codex",
                        "Spotify", "Notion", "WhatsApp", "Figma", "Google Chrome", "Paper" };
@@ -580,6 +606,7 @@ int main(int argc,char** argv) {
   assert(knit_color_for_app(NULL) == knit_color_for_app(""));
   knit_charts_load("charts"); // no user preferences or files touched
   if(argc>1 && !strcmp(argv[1],"--bench")) benchmark(argc>2 ? argv[2] : "Paper");
+  else if(argc>2 && !strcmp(argv[1],"--by-window")) window_preview(argv[2]);
   else if(argc>2 && !strcmp(argv[1],"--individual")) individual_review(argv[2]);
   else if(argc>2 && !strcmp(argv[1],"--catalogue")) catalogue_preview(argv[2], false);
   else if(argc>2 && !strcmp(argv[1],"--classics")) catalogue_preview(argv[2], true);

@@ -41,6 +41,7 @@
 struct knit_gauge g_knit = {.rows = 6};
 int g_knit_stitch, g_knit_basket, g_knit_anchor;
 bool g_knit_on = true, g_knit_pattern_by_app = true;
+bool g_knit_pattern_by_window;
 const char* g_knit_stitch_names[] = {"stockinette", "rib", "garter"};
 static const uint32_t basket[] = {0xff123456, 0xffabcdef};
 const struct knit_basket g_knit_baskets[] = {
@@ -68,7 +69,8 @@ void knit_apply(const char* argument) {
     if (reload_height && g_chart_active >= 0) g_charts[g_chart_active].h = reload_height;
   } else if (!strncmp(argument, "chart=", 6)) {
     const char* name = argument + 6;
-    if (!strcmp(name, "by-app")) g_knit_pattern_by_app = true;
+    g_knit_pattern_by_window = !strcmp(name, "by-window");
+    if (!strcmp(name, "by-app") || g_knit_pattern_by_window) g_knit_pattern_by_app = true;
     else { g_knit_pattern_by_app = false; g_chart_active = knit_chart_index(name); }
   } else if (!strncmp(argument, "yarn=", 5)) {
     for (int i = 0; i < KNIT_STITCH_COUNT; i++)
@@ -219,7 +221,25 @@ int main(void) {
     knit_load_prefs();
     assert(g_knit_pattern_by_app && g_knit.rows == 6);
     assert([[KnitTestDefaults standardUserDefaults] floatForKey:@"gauge"] == 6);
-    puts("PASS: native menu structure, truthful state, working selections, chart filtering, gauge limits, cached swatches");
+    g_charts[0].px = chart_pixels[0]; // restore the chart invalidated by the cache test
+    [controller rebuild:menu];
+    patterns = submenu(menu, @"Pattern");
+    [controller apply:[patterns itemWithTitle:@"By Window"]];
+    assert(g_knit_pattern_by_window && g_knit_pattern_by_app);
+    assert([[KnitTestDefaults standardUserDefaults] boolForKey:@"patternByWindow"]);
+    [controller rebuild:menu];
+    patterns = submenu(menu, @"Pattern");
+    assert(checked_count(patterns) == 1);
+    assert([patterns itemWithTitle:@"By Window"].state == NSControlStateValueOn);
+    g_knit_pattern_by_window = false;
+    knit_load_prefs();
+    assert(g_knit_pattern_by_window);
+    [controller apply:[patterns itemWithTitle:@"Zigzag"]];
+    assert(!g_knit_pattern_by_window && !g_knit_pattern_by_app);
+    assert(![[KnitTestDefaults standardUserDefaults] boolForKey:@"patternByWindow"]);
+    knit_load_prefs();
+    assert(!g_knit_pattern_by_window && g_chart_active == knit_chart_index("zigzag"));
+    puts("PASS: native menu structure, truthful state, working selections, chart filtering, gauge limits, cached swatches, By Window persistence");
   }
   return 0;
 }
