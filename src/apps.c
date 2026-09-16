@@ -174,7 +174,7 @@ const struct app_rule* knit_app_rule(const char* app_name) {
 }
 
 // Remember assignments for the session, including while borders are hidden or
-// recreated. Each app walks the collection independently; app aliases that
+// recreated. All windows share one collection sequence; app aliases that
 // share a chart do not consume another design. No window titles are retained.
 const struct app_rule* knit_window_rule(const char* app_name, uint32_t wid) {
   static struct assignment {
@@ -193,12 +193,11 @@ const struct app_rule* knit_window_rule(const char* app_name, uint32_t wid) {
     }
   }
   const char* app = app_name ? app_name : "";
-  size_t next = 0;
   for (size_t i = 0; i < count; i++) {
     if (strcasecmp(assignments[i].app, app)) continue;
     if (assignments[i].wid == wid) return designs[assignments[i].design];
-    next++;
   }
+  size_t next = count;
   if (count == capacity) {
     size_t grown = capacity ? capacity * 2 : 64;
     struct assignment* buffer = realloc(assignments, grown * sizeof *buffer);

@@ -167,14 +167,24 @@ static void test_patterns(void) {
 static void test_window_patterns(void) {
   assert(knit_pattern_select("by-window"));
   assert(g_knit_pattern_by_app && g_knit_pattern_by_window);
+  // One window per app must receive different designs, too.
+  const char* apps[] = {"Terminal", "Safari", "Finder"};
+  const struct app_rule* mixed[3];
+  for (uint32_t i = 0; i < 3; i++) {
+    mixed[i] = knit_window_rule(apps[i], 9000 + i);
+    for (uint32_t j = 0; j < i; j++)
+      assert(strcmp(mixed[i]->chart, mixed[j]->chart));
+  }
   const struct app_rule* first[12];
   for (uint32_t i = 0; i < 12; i++) {
     first[i] = knit_window_rule("Terminal", 101 + i * 73);
     assert(knit_chart_index(first[i]->chart) >= 0);
     for (uint32_t j = 0; j < i; j++)
       assert(strcmp(first[i]->chart, first[j]->chart));
-    // Discovering another app must not change Terminal's sequence.
-    assert(knit_window_rule("Another App", i)->color == first[i]->color);
+    // Interleaved apps share the sequence without changing existing windows.
+    const struct app_rule* other = knit_window_rule("Another App", i);
+    assert(strcmp(other->chart, first[i]->chart));
+    assert(knit_window_rule("Terminal", 101 + i * 73) == first[i]);
   }
   // Reallocation, out-of-order redraws and mode changes keep prior assignments.
   for (uint32_t i = 0; i < 300; i++)
@@ -191,6 +201,8 @@ static void test_window_patterns(void) {
   assert(knit_charts_load(NULL) == COLLECTION_COUNT);
   for (int i = 11; i >= 0; i--)
     assert(knit_window_rule("terminal", 101 + i * 73) == first[i]);
+  for (int i = 2; i >= 0; i--)
+    assert(knit_window_rule(apps[i], 9000 + i) == mixed[i]);
   assert(knit_pattern_select("none"));
   assert(!g_knit_pattern_by_window && !g_knit_pattern_by_app);
   assert(knit_pattern_select("by-app"));

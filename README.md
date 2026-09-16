@@ -30,7 +30,7 @@ Click the yarn icon in your menu bar to change the style, pattern, border width,
 
 **By App** gives each app its own sweater. **Zigzag** gives them all a softer, matching pattern in their own colours. Try both and see what you like.
 
-**By Window** gives windows of the same app different sweaters from the existing collection. Each window keeps its design when moved, resized, hidden, or restored during the current run. Designs cycle after the collection is exhausted; assignments start fresh when Window Sweaters restarts. This mode uses the collection's paired colors and patterns, while By App continues to honor your app rules. Choose it under **Pattern → By Window**, or run `WindowSweaters chart=by-window`. Menu selections survive a restart.
+**By Window** gives windows different sweaters from the existing collection, including windows belonging to different apps. All windows share one design sequence. Each window keeps its design when moved, resized, hidden, or restored during the current run. Designs cycle after the collection is exhausted; assignments start fresh when Window Sweaters restarts. This mode uses the collection's paired colors and patterns, while By App continues to honor your app rules. Choose it under **Pattern → By Window**, or run `WindowSweaters chart=by-window`. Menu selections survive a restart.
 
 If macOS asks for Accessibility access, enable Window Sweaters in **System Settings → Privacy & Security → Accessibility** so it can follow which window is focused.
 
